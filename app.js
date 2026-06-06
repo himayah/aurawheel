@@ -22,6 +22,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // Grid & Action Elements
   const colorGrid = document.getElementById('colorGrid');
   const undoBtn = document.getElementById('undoBtn');
+  const gridTooltip = document.getElementById('gridTooltip');
 
   const hexValueText = document.getElementById('hexValue');
   const rgbValueText = document.getElementById('rgbValue');
@@ -78,10 +79,60 @@ document.addEventListener('DOMContentLoaded', () => {
     for (let i = 0; i < TOTAL_CELLS; i++) {
       const cell = document.createElement('div');
       cell.className = 'grid-cell';
+      
+      // Hover event listeners for showing color tooltip
+      cell.addEventListener('mouseenter', () => showTooltip(cell, i));
+      cell.addEventListener('mouseleave', hideTooltip);
+      
       colorGrid.appendChild(cell);
       cellElements.push(cell);
     }
     updateActiveTarget();
+  }
+
+  // --- Tooltip Event Handlers ---
+  function showTooltip(cell, index) {
+    const hslStr = cellStates[index];
+    if (!hslStr) return; // Ignore unpainted cells
+
+    const parsed = parseHslString(hslStr);
+    if (!parsed) return;
+
+    const { h, s, l } = parsed;
+    const rgb = hslToRgb(h, s, l);
+    const rgbStr = `rgb(${rgb.r}, ${rgb.g}, ${rgb.b})`;
+    const hexStr = rgbToHex(rgb.r, rgb.g, rgb.b);
+
+    // Populate values
+    gridTooltip.innerHTML = `
+      <div class="tooltip-row"><span class="tooltip-label">HEX</span><span class="tooltip-value">${hexStr}</span></div>
+      <div class="tooltip-row"><span class="tooltip-label">RGB</span><span class="tooltip-value">${rgbStr}</span></div>
+      <div class="tooltip-row"><span class="tooltip-label">HSL</span><span class="tooltip-value">${hslStr}</span></div>
+    `;
+
+    // Calculate layout coordinates
+    const cellRect = cell.getBoundingClientRect();
+    const containerRect = colorGrid.parentElement.getBoundingClientRect();
+
+    const cellLeft = cellRect.left - containerRect.left + cellRect.width / 2;
+    const cellTop = cellRect.top - containerRect.top;
+    const row = Math.floor(index / COLS);
+
+    // Apply absolute positions
+    gridTooltip.style.left = `${cellLeft}px`;
+
+    // Position below for the top row (row 0), otherwise position above
+    if (row === 0) {
+      gridTooltip.style.top = `${cellTop + cellRect.height + 4}px`;
+      gridTooltip.className = 'grid-tooltip position-bottom show';
+    } else {
+      gridTooltip.style.top = `${cellTop - 4}px`;
+      gridTooltip.className = 'grid-tooltip position-top show';
+    }
+  }
+
+  function hideTooltip() {
+    gridTooltip.className = 'grid-tooltip';
   }
 
   // --- Grid Position Mapping ---
@@ -450,6 +501,19 @@ document.addEventListener('DOMContentLoaded', () => {
   function rgbToHex(r, g, b) {
     const hex = val => val.toString(16).padStart(2, '0').toUpperCase();
     return `#${hex(r)}${hex(g)}${hex(b)}`;
+  }
+
+  // Parse HSL String back to numbers
+  function parseHslString(hslStr) {
+    const matches = hslStr.match(/hsl\((\d+),\s*(\d+)%,\s*(\d+)%\)/);
+    if (matches) {
+      return {
+        h: parseInt(matches[1]),
+        s: parseInt(matches[2]),
+        l: parseInt(matches[3])
+      };
+    }
+    return null;
   }
 
   // --- Interaction Event Listeners ---

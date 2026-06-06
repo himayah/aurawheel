@@ -261,6 +261,66 @@ body {
   pointer-events: none;
 }
 
+/* Grid Cell Tooltip */
+.grid-tooltip {
+  position: absolute;
+  background: rgba(8, 12, 22, 0.95);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 10px;
+  padding: 8px 12px;
+  pointer-events: none;
+  z-index: 100;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.6);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: var(--text-primary);
+  width: max-content;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s cubic-bezier(0.4, 0, 0.2, 1), transform 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Tooltip top-aligned animation state */
+.grid-tooltip.position-top {
+  transform: translate(-50%, -100%) translateY(-6px);
+}
+
+.grid-tooltip.position-top.show {
+  opacity: 1;
+  transform: translate(-50%, -100%) translateY(-10px);
+}
+
+/* Tooltip bottom-aligned animation state */
+.grid-tooltip.position-bottom {
+  transform: translate(-50%, 0) translateY(6px);
+}
+
+.grid-tooltip.position-bottom.show {
+  opacity: 1;
+  transform: translate(-50%, 0) translateY(10px);
+}
+
+.tooltip-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: center;
+}
+
+.tooltip-label {
+  color: var(--text-secondary);
+  font-weight: 700;
+}
+
+.tooltip-value {
+  color: var(--text-primary);
+}
+
 /* Undo Button Action styling */
 .action-row {
   display: flex;
