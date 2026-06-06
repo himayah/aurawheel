@@ -285,25 +285,23 @@ body {
   transition: opacity 0.15s cubic-bezier(0.4, 0, 0.2, 1), transform 0.15s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* Tooltip top-aligned animation state */
-.grid-tooltip.position-top {
-  transform: translate(-50%, -100%) translateY(-6px);
-}
+/* Tooltip Align: Center (default) */
+.grid-tooltip.align-center.position-top { transform: translate(-50%, -100%) translateY(-6px); }
+.grid-tooltip.align-center.position-top.show { opacity: 1; transform: translate(-50%, -100%) translateY(-10px); }
+.grid-tooltip.align-center.position-bottom { transform: translate(-50%, 0) translateY(6px); }
+.grid-tooltip.align-center.position-bottom.show { opacity: 1; transform: translate(-50%, 0) translateY(10px); }
 
-.grid-tooltip.position-top.show {
-  opacity: 1;
-  transform: translate(-50%, -100%) translateY(-10px);
-}
+/* Tooltip Align: Left (for cells on the left edge) */
+.grid-tooltip.align-left.position-top { transform: translate(0, -100%) translateY(-6px); }
+.grid-tooltip.align-left.position-top.show { opacity: 1; transform: translate(0, -100%) translateY(-10px); }
+.grid-tooltip.align-left.position-bottom { transform: translate(0, 0) translateY(6px); }
+.grid-tooltip.align-left.position-bottom.show { opacity: 1; transform: translate(0, 0) translateY(10px); }
 
-/* Tooltip bottom-aligned animation state */
-.grid-tooltip.position-bottom {
-  transform: translate(-50%, 0) translateY(6px);
-}
-
-.grid-tooltip.position-bottom.show {
-  opacity: 1;
-  transform: translate(-50%, 0) translateY(10px);
-}
+/* Tooltip Align: Right (for cells on the right edge) */
+.grid-tooltip.align-right.position-top { transform: translate(-100%, -100%) translateY(-6px); }
+.grid-tooltip.align-right.position-top.show { opacity: 1; transform: translate(-100%, -100%) translateY(-10px); }
+.grid-tooltip.align-right.position-bottom { transform: translate(-100%, 0) translateY(6px); }
+.grid-tooltip.align-right.position-bottom.show { opacity: 1; transform: translate(-100%, 0) translateY(10px); }
 
 .tooltip-row {
   display: flex;

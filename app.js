@@ -114,20 +114,39 @@ document.addEventListener('DOMContentLoaded', () => {
     const cellRect = cell.getBoundingClientRect();
     const containerRect = colorGrid.parentElement.getBoundingClientRect();
 
-    const cellLeft = cellRect.left - containerRect.left + cellRect.width / 2;
+    const col = index % COLS; // Column index (0 to 11)
+    const row = Math.floor(index / COLS); // Row index (0 to 7)
+
+    let alignClass = 'align-center';
+    let cellLeft = 0;
+
+    // Boundary edge check to adjust alignment class and alignment pivot point
+    if (col <= 1) {
+      alignClass = 'align-left';
+      cellLeft = cellRect.left - containerRect.left; // Anchor to left edge of cell
+    } else if (col >= COLS - 2) {
+      alignClass = 'align-right';
+      cellLeft = cellRect.right - containerRect.left; // Anchor to right edge of cell
+    } else {
+      alignClass = 'align-center';
+      cellLeft = cellRect.left - containerRect.left + cellRect.width / 2; // Anchor to center of cell
+    }
+
     const cellTop = cellRect.top - containerRect.top;
-    const row = Math.floor(index / COLS);
+    
+    // Position below for the top 3 rows to avoid hitting the top of the container,
+    // otherwise position above the cell.
+    const isTopHalf = row <= 2;
 
     // Apply absolute positions
     gridTooltip.style.left = `${cellLeft}px`;
 
-    // Position below for the top row (row 0), otherwise position above
-    if (row === 0) {
+    if (isTopHalf) {
       gridTooltip.style.top = `${cellTop + cellRect.height + 4}px`;
-      gridTooltip.className = 'grid-tooltip position-bottom show';
+      gridTooltip.className = `grid-tooltip position-bottom ${alignClass} show`;
     } else {
       gridTooltip.style.top = `${cellTop - 4}px`;
-      gridTooltip.className = 'grid-tooltip position-top show';
+      gridTooltip.className = `grid-tooltip position-top ${alignClass} show`;
     }
   }
 
