@@ -4,121 +4,101 @@
 [![HTML5](https://img.shields.io/badge/HTML5-CSS3-orange.svg)](#)
 [![JavaScript](https://img.shields.io/badge/JavaScript-ES6-yellow.svg)](#)
 
-A sleek, interactive, and rotating color wheel and picker application designed with modern glassmorphism aesthetics. AuraWheel allows you to explore color spectrums, pick precise colors, and copy values in HEX, RGB, or HSL formats—all while the wheel rotates smoothly.
-
-[日本語の案内はこちら](#日本語)
-
----
-
-## 🌟 Key Features
-
-* **Fluid Auto-Rotation**: Control the movement with Play/Pause and rotation direction (Clockwise / Counter-Clockwise).
-* **Variable Speed Control**: Fine-tune the rotation speed dynamically from `0.0x` (fully stopped) up to `5.0x` speed.
-* **Dual Rendering Modes**:
-  * **Smooth Spectrum**: A seamless, continuous HSL gradient spectrum wheel.
-  * **Segmented Palette**: A structured 24-color hue wheel divided into 5 radial rings of saturation and lightness, mimicking professional art palettes.
-* **Advanced Coordinate-Locking Picker**: Clicking or dragging on the rotating wheel locks the pointer onto your selected color. The pointer coordinates rotate along with the wheel in real-time.
-* **Polar-Coordinate Snapping**: In segmented mode, the selector pointer automatically snaps to the absolute center of the clicked palette sector.
-* **Ambient Aura Backdrop**: Two organic glowing backdrops slowly shift their hues over time, blending with your selected color to create an immersive visual experience.
-* **Instant Clipboard Copying**: Easily copy color strings in HEX, RGB, or HSL formats with subtle toast-based UI feedback.
+AuraWheelは、モダンなガラスモルフィズム調のデザインを採用した、美しくインタラクティブに回転するカラーホイール ＆ パレット型カラーピッカーアプリケーションです。
+無段階のスペクトルや24色のカラーセグメントから色を抽出し、その履歴をグリッド状のパレットに自動で記録・管理できます。
 
 ---
 
-## 📸 Demo Preview
+## 🌟 主な機能
 
-*(Add your application screenshots or GIFs here)*
-
-```
-[ Your dynamic glassmorphism app preview here ]
-```
-
----
-
-## 📐 Technical Highlights
-
-### 1. High-Performance Canvas Rendering
-Instead of using heavy libraries or per-pixel drawing cycles on every frame, AuraWheel draws the HSL color space once on an offscreen/initialization canvas step:
-* **Smooth Mode** draws HSL gradient slices at `0.2` degree steps, overlapping slightly to eliminate sub-pixel rendering seams.
-* **Segmented Mode** loops over 24 sectors and 5 rings, creating mathematically discrete ring arcs (`ctx.arc`) to form palette cells.
-
-All subsequent rotations are computed via hardware-accelerated CSS 3D transforms (`transform: rotate(deg)`), maintaining a buttery smooth **60 FPS** experience.
-
-### 2. Rotational Polar Coordinate Math
-To track exactly which color is under the pointer while the wheel is spinning, the absolute screen coordinates `(dx, dy)` from the center of the wheel are converted into **local polar coordinates**:
-
-$$\theta_{\text{absolute}} = \operatorname{atan2}(dy, dx)$$
-$$\theta_{\text{local}} = (\theta_{\text{absolute}} - \theta_{\text{rotation}}) \pmod{360}$$
-$$r_{\text{ratio}} = \frac{\sqrt{dx^2 + dy^2}}{R_{\text{css}}}$$
-
-The local values $r_{\text{ratio}}$ and $\theta_{\text{local}}$ are saved as state. Because the pointer element is nested inside the rotating CSS container, storing coordinates in this normalized polar format ensures:
-* The pointer **automatically rotates** with the wheel.
-* The selection is **100% responsive** to browser window resizes.
+* **なめらかな自動回転**: 一時停止/再生、および回転方向（時計回り/反時計回り）の切り替え。
+* **速度スライダー**: 回転速度を `0.0x` (完全停止) から `5.0x` までシームレスに調整可能。
+* **2つのホイールスタイル**:
+  * **スムーズモード**: 360度シームレスに変化するHSLスペクトルグラデーション。
+  * **セグメントモード**: 24色相 × 5つの同心円（彩度・明度）で構成される、パッチワーク状の使いやすいカラーブロック。
+* **パレット履歴グリッド (12列 × 8行 = 96マス)**:
+  * ホイール上をクリック・ドラッグするだけで、抽出した色がパレットに順番に自動保存されます。
+  * **独自の進行方向**: 右上のセルから始まり、下に向かって8マス塗られると、次は1列左に移ってまた上から順に塗られます。
+  * **自動上書き**: 最左下のマスまで埋まった後は、再び右上から上書きされます。
+  * **アクティブターゲット**: 次に塗られる予定のセルが優しく点滅（パルスアニメーション）し、位置を視覚的にガイドします。
+* **強力なアンドゥ (Undo) 機能**:
+  * 「元に戻す」ボタンで最後に追加した色を削除できます。
+  * **上書きに対応**: 上書きされたセルであっても、アンドゥによって上書き前の色が正確に復元されます。
+  * アンドゥを実行すると、カラーコード表示やホイール上のポインター位置もその時点の状態へ同期して巻き戻ります。
+* **極座標型ポインター追従**:
+  * ホイールが回転していても、選択した「色」の位置にポインターが吸着し、ホイールと一緒に自動回転します。
+  * ポインターの座標は極座標系（角度と半径の比率）で管理されているため、ブラウザのウィンドウサイズを変更しても位置がズレないレスポンシブな設計です。
+  * セグメントモードでは、ポインターがカラーセルのど真ん中へ自動的に吸着（スナップ）します。
+* **動的オーロラ背景**:
+  * 背景に配置された2つの光彩（グラデーション）がゆっくりと色を変えながら揺らぎます。選択した色に合わせて背景の配色調和も有機的に変化します。
+* **カラーコードのコピー**:
+  * HEX、RGB、HSL形式のカラーコードを1クリックでコピー可能。コピー完了時にはトースト通知がポップアップします。
 
 ---
 
-## 📂 Project Structure
+## 📐 技術的な特徴
+
+### 1. パフォーマンスに配慮したCanvas回転
+毎フレームごとにCanvas全体をピクセル単位で再描画するのではなく、初期化時（またはスタイル切り替え時）に一度だけCanvasにカラーホイールを描画し、回転にはハードウェアアクセラレーションが効くCSS 3D変形（`transform: rotate(deg)`）を使用しています。これにより、描画負荷を最小限に抑え、**60 FPS**の非常に滑らかな回転を実現しています。
+
+### 2. 回転を考慮した極座標変換
+ホイールが回転している状態のCanvas上で正しい色を抽出するために、ホイール中心からの絶対座標 `(dx, dy)` をローカルな極座標系に変換し、回転角 `currentRotation` を差し引いて計算しています。
+
+$$\theta_{\text{絶対}} = \operatorname{atan2}(dy, dx)$$
+$$\theta_{\text{ローカル}} = (\theta_{\text{絶対}} - \theta_{\text{回転}}) \pmod{360}$$
+$$r_{\text{比率}} = \frac{\sqrt{dx^2 + dy^2}}{R_{\text{css}}}$$
+
+このローカル極座標 $(\theta_{\text{ローカル}}, r_{\text{比率}})$ をポインターの状態として保存することで、親の回転コンテナに追従し、リサイズ時にも歪まない配置を実現しています。
+
+---
+
+## 📂 プロジェクトのファイル構成
 
 ```bash
-├── index.html   # Main application structure & SEO meta tags
-├── style.css    # CSS Variables, Animations, Custom Range Sliders & Glassmorphism styles
-├── app.js       # Core Canvas math, Polar coordinates calculations & Event loops
-└── README.md    # Repository documentation
+├── index.html   # ページの構造、各種メタタグ、フォント・CSSの読み込み
+├── style.css    # CSS変数、ガラスモルフィズム、グリッド・アンドゥ、パルス・ポップアニメーション
+├── app.js       # Canvas描画、極座標変換、グリッド進行順数学、状態復元付きのアンドゥ処理
+├── .gitignore   # GitHub用の除外設定ファイル
+└── README.md    # 本ドキュメント
 ```
 
 ---
 
-## 🚀 Quick Start
+## 🚀 動作方法
 
-Since AuraWheel is written in pure vanilla HTML, CSS, and JavaScript, it does not require complex npm build chains.
+AuraWheelはピュアなHTML、CSS、JavaScriptのみで構築されているため、特別なビルド環境は不要です。
 
-### Method 1: Double-Click (Simple)
-Simply clone the repository and open `index.html` in any modern web browser:
+### 方法1. ダブルクリックで開く (最も簡単)
+リポジトリをクローンし、`index.html` ファイルをブラウザにドラッグ＆ドロップするかダブルクリックして開きます。
 ```bash
-git clone https://github.com/your-username/aurawheel.git
+git clone https://github.com/あなたのユーザー名/aurawheel.git
 cd aurawheel
-open index.html
+# ブラウザで index.html を開く
 ```
 
-### Method 2: Local HTTP Server (Recommended)
-To run it on a local web server (useful for testing on local network devices or phones):
+### 方法2. ローカルサーバーを起動する (推奨)
+スマートフォンの実機でテストしたり、ネットワーク経由で確認したい場合は、以下のコマンドで簡易HTTPサーバーを立ち上げることを推奨します。
 ```bash
-# Using Python
+# Pythonを使用する場合
 python3 -m http.server 8080
 
-# Using Node.js (npx)
+# Node.js (npx) を使用する場合
 npx http-server -p 8080
 ```
-Then, open your browser and navigate to `http://localhost:8080`.
+起動後、ブラウザで `http://localhost:8080` にアクセスしてください。
 
 ---
 
-## 🌐 Browser Compatibility
+## 🌐 対応ブラウザ
 
-AuraWheel utilizes modern web features including CSS Custom Properties, backdrop-filters, flexbox/grid layouts, HSL color support, and the Clipboard API.
-* Google Chrome (88+)
-* Apple Safari (14.5+)
-* Mozilla Firefox (103+)
-* Microsoft Edge (88+)
-
----
-
-## 📄 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+CSS変数、backdrop-filter、CSS Grid/Flexbox、および Clipboard API を利用しています。
+* Google Chrome (88以上)
+* Apple Safari (14.5以上)
+* Mozilla Firefox (103以上)
+* Microsoft Edge (88以上)
 
 ---
 
-<div id="日本語"></div>
+## 📄 ライセンス
 
-## 🇯🇵 日本語ガイド
-
-AuraWheelは、美しく回転するカラーホイールと、その回転に合わせて動くインタラクティブなカラーピッカーです。
-
-### 主な機能
-* **滑らかな回転制御**: 再生・一時停止、回転方向の反転、および速度スライダー (0.0x〜5.0x)。
-* **2つのデザイン**: シームレスなスペクトルが得られる「スムーズ」モードと、24色相×5階調にスナップする「セグメント」モード。
-* **極座標を用いたポインター制御**: カラーホイールが回転していても、選択したカラー位置にポインターが吸着し、一緒に回転します。
-* **ワンクリックコピー**: HEX, RGB, HSLコードのクリップボードへのコピーと、トースト通知。
-
-### 起動方法
-リポジトリをクローンし、`index.html` をブラウザで直接開くか、またはローカルサーバー（Pythonの `python3 -m http.server 8080` など）を起動してブラウザからアクセスしてください。
+このプロジェクトは **MITライセンス** のもとで公開されています。詳細は [LICENSE](LICENSE) ファイル（必要に応じて作成してください）をご参照ください。
