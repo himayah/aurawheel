@@ -19,7 +19,10 @@ document.addEventListener('DOMContentLoaded', () => {
   const speedSlider = document.getElementById('speedSlider');
   const speedValueText = document.getElementById('speedValue');
 
-  const colorPreview = document.getElementById('colorPreview');
+  // Grid & Action Elements
+  const colorGrid = document.getElementById('colorGrid');
+  const undoBtn = document.getElementById('undoBtn');
+
   const hexValueText = document.getElementById('hexValue');
   const rgbValueText = document.getElementById('rgbValue');
   const hslValueText = document.getElementById('hslValue');
@@ -34,6 +37,11 @@ document.addEventListener('DOMContentLoaded', () => {
   const CENTER = CANVAS_SIZE / 2;
   const RADIUS = 390; // Leave 10px padding for anti-aliasing shadow boundary
   const BASE_SPEED = 15; // Degrees per second at 1.0x
+
+  // Grid Dimensions
+  const COLS = 12;
+  const ROWS = 8;
+  const TOTAL_CELLS = COLS * ROWS;
 
   // --- State Variables ---
   let currentRotation = 0; // Degrees
@@ -52,9 +60,52 @@ document.addEventListener('DOMContentLoaded', () => {
   let isDragging = false;
   let lastFrameTime = 0;
 
+  // Grid States
+  let stepCount = 0; // Track the sequence index of added colors
+  let actionHistory = []; // Action log for Undo operations
+  let cellStates = Array(TOTAL_CELLS).fill(null); // Save current color of each cell
+  let cellElements = []; // DOM element reference array
+
   // Set Canvas internal dimensions for crisp rendering
   canvas.width = CANVAS_SIZE;
   canvas.height = CANVAS_SIZE;
+
+  // --- Initialize Color Grid ---
+  function initColorGrid() {
+    colorGrid.innerHTML = '';
+    cellElements = [];
+    
+    for (let i = 0; i < TOTAL_CELLS; i++) {
+      const cell = document.createElement('div');
+      cell.className = 'grid-cell';
+      colorGrid.appendChild(cell);
+      cellElements.push(cell);
+    }
+    updateActiveTarget();
+  }
+
+  // --- Grid Position Mapping ---
+  // Calculates coordinates for: Right-to-Left, Top-to-Bottom columns
+  function getGridPosition(step) {
+    const colIndex = Math.floor(step / ROWS) % COLS; // How many columns leftwards from right side
+    const col = (COLS - 1) - colIndex; // Actual 0-based column index from left
+    const row = step % ROWS; // Row index (top-to-bottom: 0 to 7)
+    
+    // Convert 2D coordinate to 1D index matching standard grid DOM order (row-major: left-to-right)
+    const index = row * COLS + col;
+    return { col, row, index };
+  }
+
+  function updateActiveTarget() {
+    // Remove target borders from all cells
+    cellElements.forEach(cell => cell.classList.remove('active-target'));
+    
+    // Add pulsing border to the cell matching the next write step
+    const nextPos = getGridPosition(stepCount);
+    if (cellElements[nextPos.index]) {
+      cellElements[nextPos.index].classList.add('active-target');
+    }
+  }
 
   // --- Color Wheel Rendering Functions ---
 
@@ -217,6 +268,41 @@ document.addEventListener('DOMContentLoaded', () => {
       pointerPolar = { rRatio: snapRatio, angle: snapAngle };
     }
 
+    // Capture the state changes for the current action
+    const pos = getGridPosition(stepCount);
+    const prevColor = cellStates[pos.index];
+    const newColorString = `hsl(${finalH}, ${finalS}%, ${finalL}%)`;
+
+    // Record complete application snapshot for precise undo operations
+    actionHistory.push({
+      step: stepCount,
+      cellIndex: pos.index,
+      prevColor: prevColor,
+      newColor: newColorString,
+      
+      // Context properties for code displays and pointer recovery
+      selectedColor: { ...selectedColor },
+      pointerPolar: { ...pointerPolar },
+      hasSelectedColor: hasSelectedColor
+    });
+
+    // Update cell arrays
+    cellStates[pos.index] = newColorString;
+
+    // Apply color to target DOM cell
+    const cell = cellElements[pos.index];
+    cell.style.backgroundColor = newColorString;
+
+    // Trigger visual pop flash animation
+    cell.classList.remove('pop-paint');
+    void cell.offsetWidth; // Force CSS reflow
+    cell.classList.add('pop-paint');
+
+    // Proceed to next step
+    stepCount++;
+    undoBtn.disabled = false;
+    updateActiveTarget();
+
     // Save picked color state
     selectedColor = { h: finalH, s: finalS, l: finalL };
     hasSelectedColor = true;
@@ -232,8 +318,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const rgbString = `rgb(${rgb.r}, ${rgb.g}, ${rgb.b})`;
     const hexString = rgbToHex(rgb.r, rgb.g, rgb.b);
 
-    // Apply color values to DOM
-    colorPreview.style.backgroundColor = hslString;
+    // Apply text values to DOM
     hexValueText.textContent = hexString;
     rgbValueText.textContent = rgbString;
     hslValueText.textContent = hslString;
@@ -292,6 +377,56 @@ document.addEventListener('DOMContentLoaded', () => {
       selectedColor.l = Math.round(100 - ((ringIndex + 1) / rings) * 50);
     }
 
+    updateColorUI();
+  }
+
+  // --- Undo Operations ---
+  
+  function performUndo() {
+    if (actionHistory.length === 0) return;
+    
+    // Pop last paint action
+    const lastAction = actionHistory.pop();
+    
+    // Rollback step counter to the index of this action
+    stepCount = lastAction.step;
+    
+    // Rollback cell color state
+    cellStates[lastAction.cellIndex] = lastAction.prevColor;
+    
+    // Restore cell styling in DOM
+    const cell = cellElements[lastAction.cellIndex];
+    if (lastAction.prevColor) {
+      cell.style.backgroundColor = lastAction.prevColor;
+    } else {
+      cell.style.backgroundColor = '';
+    }
+    
+    // Pop visual pulse on modification
+    cell.classList.remove('pop-paint');
+    void cell.offsetWidth;
+    cell.classList.add('pop-paint');
+
+    // Disable button if history is fully cleared
+    if (actionHistory.length === 0) {
+      undoBtn.disabled = true;
+    }
+    
+    // Update active target pointer
+    updateActiveTarget();
+
+    // Recover picker state and text inputs to matching values before this paint
+    if (actionHistory.length > 0) {
+      const prevAction = actionHistory[actionHistory.length - 1];
+      selectedColor = { ...prevAction.selectedColor };
+      pointerPolar = { ...prevAction.pointerPolar };
+      hasSelectedColor = prevAction.hasSelectedColor;
+    } else {
+      // Fully clear back to initialization state (White and hidden pointer)
+      selectedColor = { h: 0, s: 0, l: 100 };
+      hasSelectedColor = false;
+    }
+    
     updateColorUI();
   }
 
@@ -399,6 +534,9 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
+  // Undo Action Trigger
+  undoBtn.addEventListener('click', performUndo);
+
   // Copy Clipboard Helper
   const copyButtons = document.querySelectorAll('.copy-btn');
   copyButtons.forEach(btn => {
@@ -428,6 +566,7 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   // Run initialization setup
+  initColorGrid();
   drawColorWheel();
   
   // Set initial picked color as white
